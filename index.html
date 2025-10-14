@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misskey 커스텀 이모지 JSON 메이커</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/ONE-Mobile-POP.woff" as="font" type="font/woff" crossorigin>
+    <style>
+        @font-face {
+            font-family: 'ONE-Mobile-POP';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/ONE-Mobile-POP.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+            background-color: #fffbe7;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            font-family: ONE-Mobile-POP, sans-serif;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #58524b;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 30px;
+            border: 2px solid #e5e1cf;
+            border-radius: 8px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: #efb33b;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e09a25;
+        }
+
+        td {
+            padding: 0;
+            border: 1px solid #e5e1cf;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            font-family: inherit;
+            background: transparent;
+            user-select: none;
+        }
+
+        input:focus {
+            background: #fff9e6;
+            user-select: text;
+        }
+
+        tr:hover td {
+            background: #fafafa;
+        }
+
+        .row-number {
+            background: #f3f2e9;
+            color: #666;
+            text-align: center;
+            font-weight: 500;
+            padding: 12px 8px;
+            min-width: 50px;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button {
+            background-color: #efb33b;
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(239, 179, 59, 0.3);
+        }
+
+        button:hover {
+            background-color: #f09e75;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(240, 158, 117, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.success {
+            background-color: #38ef7d;
+            box-shadow: 0 2px 8px rgba(56, 239, 125, 0.3);
+        }
+
+        button.success:hover {
+            background-color: #11998e;
+        }
+
+        .info {
+            background: #fff9e6;
+            border-left: 4px solid #efb33b;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #8b6914;
+        }
+
+        .info-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #6b4e0f;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e1cf;
+            text-align: center;
+            font-size: 13px;
+            color: #999;
+        }
+
+        .footer a {
+            color: #efb33b;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .footer a:hover {
+            color: #f09e75;
+        }
+
+        input.selected {
+            background: #ffeaa7 !important;
+            outline: 2px solid #efb33b;
+        }
+
+        .bulk-input-container {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            min-width: 350px;
+        }
+
+        .bulk-input-container.show {
+            display: block;
+        }
+
+        .bulk-input-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        .bulk-input-field {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e1cf;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            margin-bottom: 12px;
+        }
+
+        .bulk-input-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .bulk-input-buttons button {
+            padding: 8px 20px;
+            font-size: 14px;
+        }
+
+        .bulk-cancel {
+            background-color: #999 !important;
+        }
+
+        .bulk-cancel:hover {
+            background-color: #777 !important;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        .tools-panel {
+            background: white;
+            border: 1px solid #e5e1cf;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .tool-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tool-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b4e0f;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .tool-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tool-input {
+            padding: 8px 12px;
+            border: 1px solid #e5e1cf;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .tool-input:focus {
+            outline: none;
+            border-color: #efb33b;
+            background: #fffdf7;
+        }
+
+        .tool-button {
+            padding: 8px 16px;
+            font-size: 13px;
+            background-color: #efb33b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .tool-button:hover {
+            background-color: #f09e75;
+            transform: translateY(-1px);
+        }
+
+        .tool-button:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 1024px) {
+            .tools-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Misskey 커스텀 이모지 JSON 메이커</h1>
+        <p class="subtitle">다량의 커스텀 이모지를 일괄 등록하는 meta.json 파일을 생성합니다. </p>
+        <div class="info">
+            <div class="info-title">💡 사용 방법</div>
+            <div>
+                • 표에 직접 입력하거나 엑셀/스프레드시트에서 복사하여 붙여넣을 수 있습니다.<br>
+                • 만들어진 meta.json 파일과 이모지 파일을 압축한 뒤, 커스텀 이모지 관리 창에서 [가져오기]로 업로드하시면 일괄로 등록할 수 있습니다.<br>
+            </div>
+        </div>
+
+        <div class="tools-panel">
+            <div class="tool-section">
+                <label class="tool-label">파일명 확장자 일괄 추가</label>
+                <div class="tool-row">
+                    <input type="text" id="extensionInput" class="tool-input" value=".png" placeholder=".png">
+                    <button class="tool-button" onclick="addExtension()">추가</button>
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <label class="tool-label">이름 접두사/접미사 일괄 추가</label>
+                <div class="tool-row">
+                    <input type="text" id="prefixInput" class="tool-input" placeholder="접두사">
+                    <button class="tool-button" onclick="addPrefix()">추가</button>
+                </div>
+                <div class="tool-row" style="margin-top: 8px;">
+                    <input type="text" id="suffixInput" class="tool-input" placeholder="접미사">
+                    <button class="tool-button" onclick="addSuffix()">추가</button>
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <label class="tool-label">카테고리 일괄 추가</label>
+                <div class="tool-row">
+                    <input type="text" id="categoryInput" class="tool-input" placeholder="예: 게임 관련/FF14">
+                    <button class="tool-button" onclick="addCategory()">추가</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="emojiTable">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th style="width: 25%;">파일명</th>
+                        <th style="width: 20%;">이름</th>
+                        <th style="width: 25%;">카테고리</th>
+                        <th style="width: 30%;">태그</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="button-container">
+            <button id="generateBtn" onclick="generateJSON()">
+                meta.json 만들기
+            </button>
+        </div>
+
+        <div class="footer">
+            Powered by <a href="http://buttersc.one" target="_blank" rel="noopener noreferrer">buttersc.one</a>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeBulkInput()"></div>
+    <div class="bulk-input-container" id="bulkInputModal">
+        <div class="bulk-input-title">선택한 셀에 일괄 입력</div>
+        <input type="text" id="bulkInputField" class="bulk-input-field" placeholder="입력할 값을 입력하세요">
+        <div class="bulk-input-buttons">
+            <button class="bulk-cancel" onclick="closeBulkInput()">취소</button>
+            <button onclick="applyBulkInput()">적용</button>
+        </div>
+    </div>
+
+    <script>
+        let rowCount = 0;
+        let selectedInputs = new Set();
+        let isDragging = false;
+        let lastFocusedInput = null;
+        let dragStartInput = null;
+
+        // 초기 행 추가
+        function init() {
+            for (let i = 0; i < 5; i++) {
+                addRow();
+            }
+            
+            // 전역 키보드 이벤트 리스너
+            document.addEventListener('keydown', function(e) {
+                // Ctrl/Cmd + I: 일괄 입력 모달 열기
+                if ((e.ctrlKey || e.metaKey) && e.key === 'i' && selectedInputs.size > 0) {
+                    e.preventDefault();
+                    openBulkInput();
+                }
+            });
+
+            // 마우스 업 이벤트로 드래그 종료
+            document.addEventListener('mouseup', function() {
+                isDragging = false;
+                dragStartInput = null;
+            });
+        }
+
+        // 새 행 추가
+        function addRow() {
+            rowCount++;
+            const tbody = document.getElementById('tableBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="row-number">${rowCount}</td>
+                <td><input type="text" data-col="0" data-row="${rowCount - 1}" placeholder="scone.png"></td>
+                <td><input type="text" data-col="1" data-row="${rowCount - 1}" placeholder="scone_image"></td>
+                <td><input type="text" data-col="2" data-row="${rowCount - 1}" placeholder="카테고리/하위 카테고리"></td>
+                <td><input type="text" data-col="3" data-row="${rowCount - 1}" placeholder="스콘, 슥곤"></td>
+            `;
+            tbody.appendChild(row);
+
+            // 입력 이벤트 리스너 추가
+            const inputs = row.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('input', handleInput);
+                input.addEventListener('keydown', handleKeydown);
+                input.addEventListener('paste', handlePaste);
+                input.addEventListener('click', handleInputClick);
+                input.addEventListener('mousedown', handleMouseDown);
+                input.addEventListener('mouseover', handleMouseOver);
+                input.addEventListener('focus', handleFocus);
+            });
+        }
+
+        // 입력 처리 (자동 행 추가/제거)
+        function handleInput(e) {
+            const inputs = document.querySelectorAll('#tableBody input');
+            const tbody = document.getElementById('tableBody');
+            const rows = tbody.querySelectorAll('tr');
+            
+            // 최소 5개 행 유지
+            if (rows.length < 5) {
+                return;
+            }
+            
+            const lastRowInputs = Array.from(inputs).slice(-4);
+            const hasContent = lastRowInputs.some(input => input.value.trim() !== '');
+            
+            if (hasContent) {
+                // 마지막 행에 내용이 있으면 새 행 추가
+                const currentRowInputs = Array.from(inputs).slice(-8, -4);
+                const isLastRowFull = currentRowInputs.every(input => input.value.trim() !== '');
+                
+                if (!isLastRowFull) {
+                    return;
+                }
+                
+                addRow();
+            } else {
+                // 마지막 행이 완전히 비어있고, 행이 5개보다 많으면 제거
+                if (rows.length > 5) {
+                    const lastRow = rows[rows.length - 1];
+                    const allEmpty = lastRowInputs.every(input => input.value.trim() === '');
+                    
+                    if (allEmpty) {
+                        // 선택된 입력에서 제거
+                        lastRowInputs.forEach(input => {
+                            if (selectedInputs.has(input)) {
+                                input.classList.remove('selected');
+                                selectedInputs.delete(input);
+                            }
+                        });
+                        
+                        lastRow.remove();
+                        rowCount--;
+                    }
+                }
+            }
+        }
+
+        // 셀 선택 처리
+        function handleInputClick(e) {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const input = e.target;
+                
+                if (selectedInputs.has(input)) {
+                    selectedInputs.delete(input);
+                    input.classList.remove('selected');
+                } else {
+                    selectedInputs.add(input);
+                    input.classList.add('selected');
+                }
+            } else if (!e.shiftKey && !isDragging) {
+                // 일반 클릭은 모든 선택 해제
+                if (selectedInputs.size > 0) {
+                    selectedInputs.forEach(input => input.classList.remove('selected'));
+                    selectedInputs.clear();
+                }
+            }
+        }
+
+        // 마우스 다운 - 드래그 시작
+        function handleMouseDown(e) {
+            if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                isDragging = true;
+                dragStartInput = e.target;
+                
+                // 기존 선택 해제
+                selectedInputs.forEach(input => input.classList.remove('selected'));
+                selectedInputs.clear();
+                
+                // 현재 셀 선택
+                selectedInputs.add(e.target);
+                e.target.classList.add('selected');
+            }
+        }
+
+        // 마우스 오버 - 드래그 중 선택
+        function handleMouseOver(e) {
+            if (isDragging && dragStartInput) {
+                e.preventDefault();
+                selectRange(dragStartInput, e.target);
+            }
+        }
+
+        // 포커스 처리
+        function handleFocus(e) {
+            lastFocusedInput = e.target;
+        }
+
+        // 범위 선택 함수
+        function selectRange(start, end) {
+            const startRow = parseInt(start.dataset.row);
+            const startCol = parseInt(start.dataset.col);
+            const endRow = parseInt(end.dataset.row);
+            const endCol = parseInt(end.dataset.col);
+
+            const minRow = Math.min(startRow, endRow);
+            const maxRow = Math.max(startRow, endRow);
+            const minCol = Math.min(startCol, endCol);
+            const maxCol = Math.max(startCol, endCol);
+
+            // 기존 선택 해제
+            selectedInputs.forEach(input => input.classList.remove('selected'));
+            selectedInputs.clear();
+
+            // 범위 내 모든 셀 선택
+            for (let r = minRow; r <= maxRow; r++) {
+                for (let c = minCol; c <= maxCol; c++) {
+                    const input = document.querySelector(`input[data-row="${r}"][data-col="${c}"]`);
+                    if (input) {
+                        selectedInputs.add(input);
+                        input.classList.add('selected');
+                    }
+                }
+            }
+        }
+
+        // 일괄 입력 모달 열기
+        function openBulkInput() {
+            document.getElementById('overlay').classList.add('show');
+            document.getElementById('bulkInputModal').classList.add('show');
+            document.getElementById('bulkInputField').focus();
+        }
+
+        // 일괄 입력 모달 닫기
+        function closeBulkInput() {
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('bulkInputModal').classList.remove('show');
+            document.getElementById('bulkInputField').value = '';
+        }
+
+        // 일괄 입력 적용
+        function applyBulkInput() {
+            const value = document.getElementById('bulkInputField').value;
+            selectedInputs.forEach(input => {
+                input.value = value;
+            });
+            
+            // 선택 해제
+            selectedInputs.forEach(input => input.classList.remove('selected'));
+            selectedInputs.clear();
+            
+            closeBulkInput();
+        }
+
+        // 키보드 네비게이션
+        function handleKeydown(e) {
+            const currentInput = e.target;
+            const row = parseInt(currentInput.dataset.row);
+            const col = parseInt(currentInput.dataset.col);
+
+            // Delete/Backspace: 선택된 셀들 삭제
+            if ((e.key === 'Delete' || e.key === 'Backspace') && selectedInputs.size > 1) {
+                e.preventDefault();
+                selectedInputs.forEach(input => {
+                    input.value = '';
+                });
+                return;
+            }
+
+            let nextInput = null;
+
+            switch(e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    nextInput = document.querySelector(`input[data-row="${row - 1}"][data-col="${col}"]`);
+                    
+                    if (e.shiftKey && nextInput) {
+                        // Shift + 방향키: 범위 선택
+                        if (!lastFocusedInput) lastFocusedInput = currentInput;
+                        selectRange(lastFocusedInput, nextInput);
+                    } else {
+                        // 일반 방향키: 선택 해제
+                        if (selectedInputs.size > 0) {
+                            selectedInputs.forEach(input => input.classList.remove('selected'));
+                            selectedInputs.clear();
+                        }
+                        lastFocusedInput = nextInput;
+                    }
+                    break;
+                    
+                case 'ArrowDown':
+                    e.preventDefault();
+                    nextInput = document.querySelector(`input[data-row="${row + 1}"][data-col="${col}"]`);
+                    
+                    if (e.shiftKey && nextInput) {
+                        if (!lastFocusedInput) lastFocusedInput = currentInput;
+                        selectRange(lastFocusedInput, nextInput);
+                    } else {
+                        if (selectedInputs.size > 0) {
+                            selectedInputs.forEach(input => input.classList.remove('selected'));
+                            selectedInputs.clear();
+                        }
+                        lastFocusedInput = nextInput;
+                    }
+                    break;
+                    
+                case 'ArrowLeft':
+                    if (currentInput.selectionStart === 0 || e.shiftKey) {
+                        e.preventDefault();
+                        nextInput = document.querySelector(`input[data-row="${row}"][data-col="${col - 1}"]`);
+                        
+                        if (e.shiftKey && nextInput) {
+                            if (!lastFocusedInput) lastFocusedInput = currentInput;
+                            selectRange(lastFocusedInput, nextInput);
+                        } else {
+                            if (selectedInputs.size > 0) {
+                                selectedInputs.forEach(input => input.classList.remove('selected'));
+                                selectedInputs.clear();
+                            }
+                            lastFocusedInput = nextInput;
+                        }
+                    }
+                    break;
+                    
+                case 'ArrowRight':
+                    if (currentInput.selectionStart === currentInput.value.length || e.shiftKey) {
+                        e.preventDefault();
+                        nextInput = document.querySelector(`input[data-row="${row}"][data-col="${col + 1}"]`);
+                        
+                        if (e.shiftKey && nextInput) {
+                            if (!lastFocusedInput) lastFocusedInput = currentInput;
+                            selectRange(lastFocusedInput, nextInput);
+                        } else {
+                            if (selectedInputs.size > 0) {
+                                selectedInputs.forEach(input => input.classList.remove('selected'));
+                                selectedInputs.clear();
+                            }
+                            lastFocusedInput = nextInput;
+                        }
+                    }
+                    break;
+                    
+                case 'Tab':
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        // Shift+Tab: 이전 셀
+                        if (col > 0) {
+                            nextInput = document.querySelector(`input[data-row="${row}"][data-col="${col - 1}"]`);
+                        } else if (row > 0) {
+                            nextInput = document.querySelector(`input[data-row="${row - 1}"][data-col="3"]`);
+                        }
+                    } else {
+                        // Tab: 다음 셀
+                        if (col < 3) {
+                            nextInput = document.querySelector(`input[data-row="${row}"][data-col="${col + 1}"]`);
+                        } else {
+                            nextInput = document.querySelector(`input[data-row="${row + 1}"][data-col="0"]`);
+                            if (!nextInput) {
+                                addRow();
+                                setTimeout(() => {
+                                    nextInput = document.querySelector(`input[data-row="${row + 1}"][data-col="0"]`);
+                                    if (nextInput) nextInput.focus();
+                                }, 10);
+                                return;
+                            }
+                        }
+                    }
+                    
+                    if (selectedInputs.size > 0) {
+                        selectedInputs.forEach(input => input.classList.remove('selected'));
+                        selectedInputs.clear();
+                    }
+                    lastFocusedInput = nextInput;
+                    break;
+                    
+                case 'Enter':
+                    e.preventDefault();
+                    nextInput = document.querySelector(`input[data-row="${row + 1}"][data-col="${col}"]`);
+                    if (!nextInput) {
+                        addRow();
+                        setTimeout(() => {
+                            nextInput = document.querySelector(`input[data-row="${row + 1}"][data-col="${col}"]`);
+                            if (nextInput) nextInput.focus();
+                        }, 10);
+                        return;
+                    }
+                    
+                    if (selectedInputs.size > 0) {
+                        selectedInputs.forEach(input => input.classList.remove('selected'));
+                        selectedInputs.clear();
+                    }
+                    lastFocusedInput = nextInput;
+                    break;
+            }
+
+            if (nextInput) {
+                nextInput.focus();
+            }
+        }
+
+        // 붙여넣기 처리
+        function handlePaste(e) {
+            const pasteData = e.clipboardData.getData('text');
+            
+            // 여러 셀이 선택된 경우: 동일한 내용을 모든 셀에 붙여넣기
+            if (selectedInputs.size > 1) {
+                e.preventDefault();
+                const value = pasteData.trim();
+                selectedInputs.forEach(input => {
+                    input.value = value;
+                });
+                return;
+            }
+            
+            // 탭 또는 개행으로 구분된 데이터인지 확인
+            if (pasteData.includes('\t') || pasteData.includes('\n')) {
+                e.preventDefault();
+                
+                const currentInput = e.target;
+                const startRow = parseInt(currentInput.dataset.row);
+                const startCol = parseInt(currentInput.dataset.col);
+                
+                const rows = pasteData.split('\n').filter(row => row.trim() !== '');
+                
+                rows.forEach((rowData, rowIndex) => {
+                    const cells = rowData.split('\t');
+                    const targetRow = startRow + rowIndex;
+                    
+                    // 필요한 만큼 행 추가
+                    while (rowCount <= targetRow) {
+                        addRow();
+                    }
+                    
+                    cells.forEach((cellData, cellIndex) => {
+                        const targetCol = startCol + cellIndex;
+                        if (targetCol <= 3) {
+                            const input = document.querySelector(`input[data-row="${targetRow}"][data-col="${targetCol}"]`);
+                            if (input) {
+                                input.value = cellData.trim();
+                            }
+                        }
+                    });
+                });
+            }
+        }
+
+        // JSON 생성 및 다운로드
+        function generateJSON() {
+            const inputs = document.querySelectorAll('#tableBody input');
+            const emojis = [];
+
+            // 4개씩 묶어서 처리 (fileName, name, category, aliases)
+            for (let i = 0; i < inputs.length; i += 4) {
+                const fileName = inputs[i].value.trim();
+                const name = inputs[i + 1].value.trim();
+                const category = inputs[i + 2].value.trim();
+                const aliasesStr = inputs[i + 3].value.trim();
+
+                // 모든 필드가 비어있으면 건너뛰기
+                if (!fileName && !name && !category && !aliasesStr) {
+                    continue;
+                }
+
+                // 필수 필드 검증
+                if (!fileName || !name) {
+                    alert(`${Math.floor(i / 4) + 1}번째 행: 파일명과 이름은 필수 입력 항목입니다.`);
+                    return;
+                }
+
+                // aliases 처리
+                const aliases = aliasesStr
+                    ? aliasesStr.split(',').map(a => a.trim()).filter(a => a !== '')
+                    : [];
+
+                emojis.push({
+                    downloaded: true,
+                    fileName: fileName,
+                    emoji: {
+                        name: name,
+                        category: category || "",
+                        aliases: aliases
+                    }
+                });
+            }
+
+            if (emojis.length === 0) {
+                alert('최소 1개 이상의 이모지 정보를 입력해주세요.');
+                return;
+            }
+
+            // JSON 생성
+            const metaJSON = {
+                metaVersion: 2,
+                host: "json.buttersc.one",
+                exportedAt: new Date().toISOString(),
+                emojis: emojis
+            };
+
+            // 파일 다운로드
+            const jsonStr = JSON.stringify(metaJSON, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'meta.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // 버튼 텍스트 변경
+            const btn = document.getElementById('generateBtn');
+            btn.textContent = '다운로드 성공!';
+            btn.classList.add('success');
+
+            // 3초 후 원래대로
+            setTimeout(() => {
+                btn.textContent = 'meta.json 만들기';
+                btn.classList.remove('success');
+            }, 3000);
+        }
+
+        // 파일명 확장자 일괄 추가
+        function addExtension() {
+            const extension = document.getElementById('extensionInput').value.trim();
+            if (!extension) return;
+
+            const inputs = document.querySelectorAll('#tableBody input');
+
+            // 파일명 컬럼만 처리 (data-col="0")
+            for (let i = 0; i < inputs.length; i += 4) {
+                const fileNameInput = inputs[i];
+                if (fileNameInput && fileNameInput.value.trim()) {
+                    const currentValue = fileNameInput.value.trim();
+                    
+                    // 이미 확장자가 있는지 확인
+                    if (!currentValue.includes('.') || !currentValue.endsWith(extension)) {
+                        // 기존 확장자 제거 후 새 확장자 추가
+                        const baseName = currentValue.split('.')[0];
+                        fileNameInput.value = baseName + extension;
+                    }
+                }
+            }
+        }
+
+        // 이름 접두사 일괄 추가
+        function addPrefix() {
+            const prefix = document.getElementById('prefixInput').value.trim();
+            if (!prefix) return;
+
+            const inputs = document.querySelectorAll('#tableBody input');
+
+            // 이름 컬럼만 처리 (data-col="1")
+            for (let i = 1; i < inputs.length; i += 4) {
+                const nameInput = inputs[i];
+                if (nameInput && nameInput.value.trim()) {
+                    nameInput.value = prefix + nameInput.value.trim();
+                }
+            }
+
+            document.getElementById('prefixInput').value = '';
+        }
+
+        // 이름 접미사 일괄 추가
+        function addSuffix() {
+            const suffix = document.getElementById('suffixInput').value.trim();
+            if (!suffix) return;
+
+            const inputs = document.querySelectorAll('#tableBody input');
+
+            // 이름 컬럼만 처리 (data-col="1")
+            for (let i = 1; i < inputs.length; i += 4) {
+                const nameInput = inputs[i];
+                if (nameInput && nameInput.value.trim()) {
+                    nameInput.value = nameInput.value.trim() + suffix;
+                }
+            }
+
+            document.getElementById('suffixInput').value = '';
+        }
+
+        // 카테고리 일괄 추가
+        function addCategory() {
+            const category = document.getElementById('categoryInput').value.trim();
+            if (!category) return;
+
+            const inputs = document.querySelectorAll('#tableBody input');
+
+            // 카테고리 컬럼만 처리 (data-col="2")
+            for (let i = 2; i < inputs.length; i += 4) {
+                const categoryInput = inputs[i];
+                if (categoryInput) {
+                    // 빈 셀이어도 카테고리 추가
+                    categoryInput.value = category;
+                }
+            }
+
+            document.getElementById('categoryInput').value = '';
+        }
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+
